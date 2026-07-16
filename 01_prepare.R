@@ -1,55 +1,65 @@
-# Яценко Мар'яна Ярославівна, №10, USJudgeRatings, 10 варіант
 
-# 1. Перевірка та створення папки для даних, якщо її немає
-if (!dir.exists("data")) {
-  dir.create("data")
-}
+# ПІБ: Яценко Мар'яна Ярославівна
+# Номер  / Варіант: 10
+# Назва датасету: DNA (пакет mlbench)
+# Цільова змінна: Class
 
-# 2. Перевірка поточної робочої директорії
-print("Робоча директорія:")
-getwd()
+# 1. Підготовка середовища
+print(getwd())
 
-# 3. Виклик довідки для функції кластерного аналізу
-?kmeans
+# Встановлення пакетів  та завантаження
+required_packages <- c("tidyverse", "caret", "pROC", "rpart", "rattle", "partykit", "randomForest", "e1071", "mlbench")
+new_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
+if(length(new_packages)) install.packages(new_packages)
 
-# --- Завантаження датасету та первинний опис ---
-
-# 1. Завантаження датасету
-data("USJudgeRatings")
-df_raw <- USJudgeRatings
-
-# 2. Перевірка формату
-print("Клас об'єкта:")
-class(df_raw) 
-
-# 3. Збереження вихідних даних
-# Використовуємо прямий шлях "data/", бо ми працюємо в межах проекту
-write.csv(df_raw, file = "data/raw_USJudgeRatings.csv", row.names = TRUE)
-print("Вихідні дані успішно збережено в data/raw_USJudgeRatings.csv")
-
-# 4. Демонстрація базових функцій для опису даних
-print("Розмірність (dim):")
-dim(df_raw)
-
-print("Перші рядки (head):")
-head(df_raw)
-
-# Перевірка на наявність пропусків
-print("Кількість пропусків:")
-sum(is.na(df_raw))
+library(tidyverse)
+library(caret)
+library(pROC)
+library(rpart)
+library(rattle)
+library(partykit)
+library(randomForest)
+library(e1071)
+library(mlbench)
 
 
-# --- Підготовка даних до кластеризації ---
+?mlbench::DNA  
 
-# 1. Масштабування числових ознак 
-df_scaled <- as.data.frame(scale(df_raw))
+# 2. Завантаження датасету 
+data(DNA)
+df <- as.data.frame(DNA)
 
-# 2. Збереження підготовлених даних у файл
-write.csv(df_scaled, file = "clean_USJudgeRatings.csv", row.names = TRUE)
-print("Очищені дані збережено в data/clean_USJudgeRatings.csv")
+# Збереження вихідних даних у папку data
+write.csv(df, "data/raw_DNA.csv", row.names = FALSE)
 
-# Перевірка результату масштабування
-print("Дані після масштабування:")
-head(df_scaled)
+# Демонстрація структури
+str(df)
+print(dim(df))
+print(names(df))
+print(head(df))
+summary(df)
 
+# Побудова та збереження графіка розподілу класів
+png("img/class_balance.png", width = 800, height = 600)
+print(
+  ggplot(df, aes(x = Class, fill = Class)) +
+    geom_bar(color = "black") +
+    theme_minimal() +
+    labs(title = "Розподіл класів у вихідному датасеті DNA", x = "Клас", y = "Кількість")
+)
+dev.off()
 
+# 3. Підготовка даних до класифікації
+# Перевірка на пропуски
+missing_vals <- sum(!complete.cases(df))
+print(paste("Кількість пропусків:", missing_vals))
+
+# Бінаризація цільової змінної: виділяємо клас 'ei'  проти всіх інших
+df$Class <- ifelse(df$Class == "ei", "ei", "other")
+df$Class <- factor(df$Class, levels = c("ei", "other"))
+
+# Всі інші змінні  є категоріальними  
+df[, 1:60] <- lapply(df[, 1:60], factor)
+
+# Збереження підготовлених даних
+write.csv(df, "data/clean_DNA.csv", row.names = FALSE)
